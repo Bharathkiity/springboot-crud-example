@@ -1,7 +1,7 @@
 package com.bharath.controller;
 
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -18,12 +18,11 @@ import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.bharath.dto.EmployeeDTO;
 import com.bharath.entites.Employee;
@@ -35,21 +34,18 @@ import com.bharath.service.EmployeeService;
 @Import(GlobalExceptionHandler.class)
 class EmployeeControllerTest {
 
+	private static final String EMPLOYEE_JSON = "{\"name\":\"Alice\",\"salary\":50000}";
+	private static final String EMPLOYEE_UPDATE_JSON = "{\"name\":\"Alice Updated\",\"salary\":60000}";
+	private static final String EMPLOYEE_ANY_NAME_JSON = "{\"name\":\"Doesn't matter\"}";
+
 	@Autowired
 	private MockMvc mockMvc;
 
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockBean
+	@MockitoBean
 	private EmployeeService employeeService;
 
 	@Test
 	void createEmployee_returns201() throws Exception {
-		Employee request = new Employee();
-		request.setName("Alice");
-		request.setSalary(50000);
-
 		Employee saved = new Employee();
 		saved.setId(1L);
 		saved.setName("Alice");
@@ -58,8 +54,7 @@ class EmployeeControllerTest {
 
 		when(employeeService.saveEmployee(any(Employee.class))).thenReturn(saved);
 
-		mockMvc.perform(post("/employees").contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
+		mockMvc.perform(post("/employees").contentType(MediaType.APPLICATION_JSON).content(EMPLOYEE_JSON))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.id", is(1)))
 				.andExpect(jsonPath("$.name", is("Alice")))
@@ -97,10 +92,6 @@ class EmployeeControllerTest {
 
 	@Test
 	void updateEmployee_returnsUpdatedEmployee() throws Exception {
-		Employee request = new Employee();
-		request.setName("Alice Updated");
-		request.setSalary(60000);
-
 		Employee updated = new Employee();
 		updated.setId(1L);
 		updated.setName("Alice Updated");
@@ -109,8 +100,7 @@ class EmployeeControllerTest {
 
 		when(employeeService.updateEmployee(eq(1L), any(Employee.class))).thenReturn(updated);
 
-		mockMvc.perform(put("/employees/1").contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
+		mockMvc.perform(put("/employees/1").contentType(MediaType.APPLICATION_JSON).content(EMPLOYEE_UPDATE_JSON))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id", is(1)))
 				.andExpect(jsonPath("$.name", is("Alice Updated")))
@@ -122,11 +112,7 @@ class EmployeeControllerTest {
 		when(employeeService.updateEmployee(eq(1L), any(Employee.class)))
 				.thenThrow(new EmployeeNotFoundException("Employee not found with id 1"));
 
-		Employee request = new Employee();
-		request.setName("Doesn't matter");
-
-		mockMvc.perform(put("/employees/1").contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
+		mockMvc.perform(put("/employees/1").contentType(MediaType.APPLICATION_JSON).content(EMPLOYEE_ANY_NAME_JSON))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.message", is("Employee not found with id 1")))
 				.andExpect(jsonPath("$.status", is(404)));
@@ -134,7 +120,6 @@ class EmployeeControllerTest {
 
 	@Test
 	void deleteEmployee_returnsOkString() throws Exception {
-		// Controller returns fixed success string after service call.
 		mockMvc.perform(delete("/employees/1"))
 				.andExpect(status().isOk())
 				.andExpect(content().string("Employee Deleted Successfully"));
@@ -153,17 +138,11 @@ class EmployeeControllerTest {
 
 	@Test
 	void createEmployee_whenServiceThrows_returns500WithErrorResponse() throws Exception {
-		Employee request = new Employee();
-		request.setName("Alice");
-		request.setSalary(50000);
-
 		when(employeeService.saveEmployee(any(Employee.class))).thenThrow(new RuntimeException("db down"));
 
-		mockMvc.perform(post("/employees").contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
+		mockMvc.perform(post("/employees").contentType(MediaType.APPLICATION_JSON).content(EMPLOYEE_JSON))
 				.andExpect(status().isInternalServerError())
 				.andExpect(jsonPath("$.message", is("db down")))
 				.andExpect(jsonPath("$.status", is(500)));
 	}
 }
-
