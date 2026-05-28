@@ -12,6 +12,6 @@ public class AppConfig {
     public ModelMapper modelMapper() {
         return new ModelMapper();
     }
-    
+    //add redis configuration for github confirmation email
     
 }
