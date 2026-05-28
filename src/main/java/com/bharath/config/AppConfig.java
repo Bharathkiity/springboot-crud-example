@@ -14,4 +14,7 @@ public class AppConfig {
     }
     //add redis configuration for github confirmation email
     
+    
+    //add eureka server configuration for service discovery and load balancing
+    
 }
